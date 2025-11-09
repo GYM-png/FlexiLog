@@ -189,8 +189,7 @@ typedef struct
     {
         char tag[FLEXILOG_TAG_MAX_LENGTH + 1];
         FLOG_LEVEL level;
-    };
-    struct flog_filter_t tag_filters[FLEXILOG_TAG_FILTER_NUM];
+    }tag_filters[FLEXILOG_TAG_FILTER_NUM];
 #endif // FLEXILOG_TAG_FILTER_NUM > 0
 
 #ifdef FLEXILOG_USE_ALL_LOG_RING_BUFFER
@@ -207,27 +206,26 @@ typedef struct
 #endif // FLEXILOG_USE_RECOD_LOG_RING_BUFFER
 
 #ifdef FLEXILOG_USE_EVENT_LOG_RING_BUFFER
-     struct flog_event_ring_buffer_t{
+    struct flog_event_ring_buffer_t{
         FLOG_EVENT event;
         flog_ring_buffer_t ring_bufer;
-    };
-     struct flog_event_ring_buffer_t event_ring_buffer[FLOG_EVENT_NUM];
+    }event_ring_buffer[FLOG_EVENT_NUM];
 #endif // FLEXILOG_USE_EVENT_LOG_RING_BUFFER
 }flog_t;
 static flog_t flog;
 
 
-#ifdef FLEXILOG_AUTO_MALLOC
-/**
- * @brief 初始化
- */
-void flog_init(void)
-#else
+#if defined(FLEXILOG_USE_RING_BUFFER) && !defined(FLEXILOG_AUTO_MALLOC)
 /**
  * @brief 静态初始化
  * @param parameter 静态初始化参数
  */
 void flog_init(FLOG_RingBuffer_Init_Paremeter *parameter)
+#else
+/**
+ * @brief 初始化
+ */
+void flog_init(void)
 #endif
 {
     flog_port_init();

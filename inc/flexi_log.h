@@ -14,6 +14,12 @@
 #include "stdint.h"
 #include "stdbool.h"
 
+#ifndef __FILE_NAME__
+#include <string.h>
+#define __FILE_NAME__   (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : \
+                        (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__))
+#endif // __FILE_NAME__
+
 #define flexlog_assert(expr)    do                  \
                                 {                   \
                                     if (!(expr))    \
@@ -158,10 +164,10 @@ typedef enum
 }FLOG_DATA_TYPE;
 
 
-#ifdef FLEXILOG_AUTO_MALLOC
-void flog_init(void);
-#else
+#if defined(FLEXILOG_USE_RING_BUFFER) && !defined(FLEXILOG_AUTO_MALLOC)
 void flog_init(FLOG_RingBuffer_Init_Paremeter *parameter);
+#else
+void flog_init(void);
 #endif
 
 void flog_enable_fmt(FLOG_LEVEL level, uint16_t fmt);
