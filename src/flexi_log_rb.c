@@ -12,11 +12,18 @@
 
 #include "flexi_log_rb.h"
 #include "flexi_log.h"
+#ifdef FLEXILOG_USE_RING_BUFFER
 #include "stdbool.h"
 #include "string.h"
 #include "stdint.h"
 
 
+/**
+ * @brief 初始化环形缓冲区
+ * @param rb 环形缓冲区
+ * @param buffer 数据缓冲区
+ * @param size 数据缓冲区大小
+ */
 void flog_rb_init(flog_ring_buffer_t *rb, char *buffer, uint32_t size)
 {
     flexlog_assert(rb);
@@ -54,17 +61,37 @@ void flog_rb_buffer_create(flog_ring_buffer_t *rb, uint32_t size)
     }
 }
 #endif //FLEXILOG_AUTO_MALLOC
+
+/**
+ * @brief 判断缓冲区是否为空
+ * @param rb 环形缓冲区
+ * @return true 空
+ * @return false 非空
+ */
 static bool flog_rb_is_empty(flog_ring_buffer_t *rb)
 {
     return (rb->read_pos == rb->write_pos && rb->read_pos_mirror == rb->write_pos_mirror);
 }
 
+/**
+ * @brief 判断缓冲区是否已满
+ * @param rb 环形缓冲区
+ * @return true 已满
+ * @return false 未满
+ */
 static bool flog_rb_is_full(flog_ring_buffer_t *rb)
 {
     return (rb->read_pos == rb->write_pos && rb->read_pos_mirror != rb->write_pos_mirror);
 }
 
-uint32_t flog_rb_read(flog_ring_buffer_t *rb, char *data, uint32_t size)
+/**
+ * @brief 读取数据
+ * @param rb 环形缓冲区
+ * @param data 数据缓冲区
+ * @param size 数据缓冲区大小
+ * @return 读取的字节大小
+ */
+static uint32_t flog_rb_read(flog_ring_buffer_t *rb, char *data, uint32_t size)
 {
     if (flog_rb_is_empty(rb))
     {
@@ -139,7 +166,12 @@ uint32_t flog_rb_read_lines(flog_ring_buffer_t *rb, char *data, uint32_t size)
     return read_szie;
 }
 
-
+/**
+ * @brief 强制写入数据
+ * @param rb 环形缓冲区
+ * @param data 数据缓冲区
+ * @param size 数据缓冲区大小
+ */
 void flog_rb_write_force(flog_ring_buffer_t *rb, const char *data, uint32_t size)
 {
     flexlog_assert(rb);
@@ -165,5 +197,4 @@ void flog_rb_write_force(flog_ring_buffer_t *rb, const char *data, uint32_t size
     }
 }
 
-
-
+#endif //FLEXILOG_USE_RING_BUFFER

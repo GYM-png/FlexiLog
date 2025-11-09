@@ -12,6 +12,9 @@
 
 #ifndef FLEXILOG_FLEXI_LOG_RB_H
 #define FLEXILOG_FLEXI_LOG_RB_H
+
+#include "flexi_log.h"
+#ifdef FLEXILOG_USE_RING_BUFFER
 #include "stdint.h"
 
 typedef struct
@@ -28,8 +31,7 @@ void flog_rb_init(flog_ring_buffer_t *rb, char *buffer, uint32_t size);
 #ifdef FLEXILOG_AUTO_MALLOC
 void flog_rb_buffer_create(flog_ring_buffer_t *rb, uint32_t size);
 #endif //FLEXILOG_AUTO_MALLOC
-uint32_t flog_rb_read(flog_ring_buffer_t *rb, char *data, uint32_t size);
 uint32_t flog_rb_read_lines(flog_ring_buffer_t *rb, char *data, uint32_t size);
 void flog_rb_write_force(flog_ring_buffer_t *rb, const char *data, uint32_t size);
-
+#endif
 #endif //FLEXILOG_FLEXI_LOG_RB_H

@@ -27,19 +27,20 @@
 
 
 
-#define FLEXILOG_LINE_MAX_LENGTH 1024        /* 单行最大长度 */
+#define FLEXILOG_LINE_MAX_LENGTH 1024        /* 单行日志最大长度 */
 #define FLEXILOG_FILE_NAME_MAX_LENGTH 20     /* 文件名最大长度 */
 #define FLEXILOG_FUNCTION_NAME_MAX_LENGTH 40 /* 函数名最大长度 */
 #define FLEXILOG_TAG_MAX_LENGTH 16           /* 标签最大长度 */
 #define FLEXILOG_TAG_FILTER_NUM  5           /* tag过滤数量 @note 0表示关闭tag过滤 */
+#define FLEXILOG_USE_RING_BUFFER             /* 是否使用环形缓冲区来记录日志 */
 
-
+/* 多种环形缓冲区定义 */
+#ifdef FLEXILOG_USE_RING_BUFFER
+#define FLEXILOG_AUTO_MALLOC                    /* 使用自动分配内存 */
 #define FLEXILOG_USE_ALL_LOG_RING_BUFFER        /* 使用全部环形缓冲区    @note 会对所有日志进行记录，不受任何过滤影响 */
 #define FLEXILOG_USE_OUTPUT_LOG_RING_BUFFER     /* 使用输出环形缓冲区    @note 会记录所有向硬件输出的日志 */
 #define FLEXILOG_USE_RECOD_LOG_RING_BUFFER      /* 使用记录环形缓冲区    @note 会记录特定等级以上的日志，默认为FLOG_LEVEL_RECORD */
 #define FLEXILOG_USE_EVENT_LOG_RING_BUFFER      /* 使用事件环形缓冲区    @note 会记录相关事件触发的日志 */
-
-#define FLEXILOG_AUTO_MALLOC // 使用自动分配内存
 
 /* 启用自动分配内存后会在flog_init函数中分配内存 */
 #ifdef FLEXILOG_AUTO_MALLOC
@@ -69,6 +70,7 @@ typedef enum
     FLOG_EVENT_NUM   /* 事件数量 这个定义不可修改 */
 }FLOG_EVENT;
 #endif  // FLEXILOG_USE_EVENT_LOG_RING_BUFFER
+#endif // FLEXILOG_USE_RING_BUFFER
 
 /**
  * @brief 日志等级, 优先级依次递增
@@ -107,14 +109,14 @@ typedef enum
  */
 typedef enum
 {
-    FLOG_FMT_FONT_COLOR_RED = 0,
-    FLOG_FMT_FONT_COLOR_GREEN,
-    FLOG_FMT_FONT_COLOR_YELLOW,
-    FLOG_FMT_FONT_COLOR_BLUE,
-    FLOG_FMT_FONT_COLOR_PURPLE,
-    FLOG_FMT_FONT_COLOR_CYAN,
-    FLOG_FMT_FONT_COLOR_WHITE,
-    FLOG_FMT_FONT_COLOR_UNVALID
+    FLOG_FMT_FONT_COLOR_RED = 0,    /* 红色 */
+    FLOG_FMT_FONT_COLOR_GREEN,      /* 绿色 */
+    FLOG_FMT_FONT_COLOR_YELLOW,     /* 黄色 */
+    FLOG_FMT_FONT_COLOR_BLUE,       /* 蓝色 */
+    FLOG_FMT_FONT_COLOR_PURPLE,     /* 紫色 */
+    FLOG_FMT_FONT_COLOR_CYAN,       /* 青色 */
+    FLOG_FMT_FONT_COLOR_WHITE,      /* 白色 */
+    FLOG_FMT_FONT_COLOR_UNVALID     /* 无效颜色 */
 }FLOG_FONT_COLOR;
 
 /**
@@ -122,14 +124,14 @@ typedef enum
  */
 typedef enum
 {
-    FLOG_FMT_BG_COLOR_RED = 0,
-    FLOG_FMT_BG_COLOR_GREEN,
-    FLOG_FMT_BG_COLOR_YELLOW,
-    FLOG_FMT_BG_COLOR_BLUE,
-    FLOG_FMT_BG_COLOR_PURPLE,
-    FLOG_FMT_BG_COLOR_CYAN,
-    FLOG_FMT_BG_COLOR_WHITE,
-    FLOG_FMT_BG_COLOR_UNVALID
+    FLOG_FMT_BG_COLOR_RED = 0,      /* 红色 */
+    FLOG_FMT_BG_COLOR_GREEN,        /* 绿色 */
+    FLOG_FMT_BG_COLOR_YELLOW,       /* 黄色 */
+    FLOG_FMT_BG_COLOR_BLUE,         /* 蓝色 */
+    FLOG_FMT_BG_COLOR_PURPLE,       /* 紫色 */
+    FLOG_FMT_BG_COLOR_CYAN,         /* 青色 */
+    FLOG_FMT_BG_COLOR_WHITE,        /* 白色 */
+    FLOG_FMT_BG_COLOR_UNVALID       /* 无效颜色 */
 }FLOG_BG_COLOR;
 
 /**
@@ -137,9 +139,9 @@ typedef enum
  */
 typedef enum
 {
-    FLOG_DATA_TYPE_BYTE = 0,
-    FLOG_DATA_TYPE_HALF_WORD,
-    FLOG_DATA_TYPE_WORD,
+    FLOG_DATA_TYPE_BYTE = 0,        /* 单字节 uint8_t */
+    FLOG_DATA_TYPE_HALF_WORD,       /* 半字  uint16_t */
+    FLOG_DATA_TYPE_WORD,            /* 单字  uint32_t */
 }FLOG_DATA_TYPE;
 
 
@@ -148,7 +150,11 @@ void flog_init(void);
 void flog_enable_fmt(FLOG_LEVEL level, uint16_t fmt);
 void flog_disable_fmt(FLOG_LEVEL level, uint16_t fmt);
 void flog_set_level_fmt(FLOG_LEVEL level, uint16_t fmt);
+void flog_set_font_color(FLOG_LEVEL level, FLOG_FONT_COLOR color);
+void flog_set_bg_color(FLOG_LEVEL level, FLOG_BG_COLOR color);
+#if (FLEXILOG_TAG_FILTER_NUM > 0)
 void flog_set_tag_filter(const char *tag, FLOG_LEVEL level);
+#endif
 
 void flog_printf(bool write_ring_buffer, const char *fmt, ...);
 void flog_output(FLOG_LEVEL level, const char *tag, const char *file, const char *func, uint32_t line, const char *fmt, ...);
@@ -157,9 +163,7 @@ void flog_hex_dump(char *tag, void *title, uint32_t size, FLOG_DATA_TYPE type);
 void flog_output_event(FLOG_EVENT event, const char *file, const char *func, uint32_t line, const char *fmt, ...);
 #endif
 
-
-
-
+/* 环形缓冲区相关接口 */
 #ifdef FLEXILOG_USE_ALL_LOG_RING_BUFFER
 uint32_t flog_read_all(char *data, uint32_t size);
 #ifndef FLEXILOG_AUTO_MALLOC

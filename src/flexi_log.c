@@ -11,12 +11,14 @@
 
 
 #include "flexi_log.h"
-#include "flexi_log_rb.h"
 #include "flexi_log_until.h"
 #include "stdbool.h"
 #include "string.h"
 #include "stdio.h"
 #include "stdarg.h"
+#ifdef FLEXILOG_USE_RING_BUFFER
+#include "flexi_log_rb.h"
+#endif
 
 #define FLOG_TAG "FLOG"
 #define FLOG_VERSION "1.0.0"
@@ -43,21 +45,21 @@ extern void flog_port_free(void *ptr);
 #define FLOG_COLOR_REST  "\x1B[0m"
 
 
-#define FLOG_FONT_COLOR_RED      "31m"
-#define FLOG_FONT_COLOR_GREEN    "32m"
-#define FLOG_FONT_COLOR_YELLOW   "33m"
-#define FLOG_FONT_COLOR_BLUE     "34m"
-#define FLOG_FONT_COLOR_PURPLE   "35m"
-#define FLOG_FONT_COLOR_CYAN     "36m"
-#define FLOG_FONT_COLOR_WHITE    "37m"
+#define FLOG_FONT_COLOR_RED      "31"
+#define FLOG_FONT_COLOR_GREEN    "32"
+#define FLOG_FONT_COLOR_YELLOW   "33"
+#define FLOG_FONT_COLOR_BLUE     "34"
+#define FLOG_FONT_COLOR_PURPLE   "35"
+#define FLOG_FONT_COLOR_CYAN     "36"
+#define FLOG_FONT_COLOR_WHITE    "37"
 
-#define FLOG_BG_COLOR_RED      "41m"
-#define FLOG_BG_COLOR_GREEN    "42m"
-#define FLOG_BG_COLOR_YELLOW   "43m"
-#define FLOG_BG_COLOR_BLUE     "44m"
-#define FLOG_BG_COLOR_PURPLE   "45m"
-#define FLOG_BG_COLOR_CYAN     "46m"
-#define FLOG_BG_COLOR_WHITE    "47m"
+#define FLOG_BG_COLOR_RED      "41"
+#define FLOG_BG_COLOR_GREEN    "42"
+#define FLOG_BG_COLOR_YELLOW   "43"
+#define FLOG_BG_COLOR_BLUE     "44"
+#define FLOG_BG_COLOR_PURPLE   "45"
+#define FLOG_BG_COLOR_CYAN     "46"
+#define FLOG_BG_COLOR_WHITE    "47"
 
 /**
  * @brief 等级提示
@@ -134,15 +136,6 @@ static const char *flog_level_str_table[FLOG_LEVEL_UNVALID] =
     FLOG_LEVLE_STR_ASSERT
 };
 
-/**
- * @brief 标签过滤结构体
- */
-typedef struct
-{
-    char tag[FLEXILOG_TAG_MAX_LENGTH + 1];
-    FLOG_LEVEL level;
-}flog_filter_t;
-
 
 /**
  * @brief FLOG 结构体
@@ -159,7 +152,12 @@ typedef struct
     FLOG_LEVEL global_filter_level;
 
 #if (FLEXILOG_TAG_FILTER_NUM > 0)
-    flog_filter_t tag_filters[FLEXILOG_TAG_FILTER_NUM];
+    struct flog_filter_t/* tag 过滤 */
+    {
+        char tag[FLEXILOG_TAG_MAX_LENGTH + 1];
+        FLOG_LEVEL level;
+    };
+    struct flog_filter_t tag_filters[FLEXILOG_TAG_FILTER_NUM];
 #endif // FLEXILOG_TAG_FILTER_NUM > 0
 
 #ifdef FLEXILOG_USE_ALL_LOG_RING_BUFFER
@@ -255,61 +253,38 @@ void flog_init(void)
     flog_printf(false, "Flexi Log init ok, version: %s\r\n", FLOG_VERSION);
 }
 
-/**
- * @brief 设置等级格式
- * @param level 等级
- * @param fmt 格式
- */
-void flog_set_level_fmt(FLOG_LEVEL level, uint16_t fmt)
-{
-    flog.level_fmt[level] = fmt;
-}
 
 #ifdef FLEXILOG_USE_ALL_LOG_RING_BUFFER
-#ifdef FLEXILOG_AUTO_MALLOC
-void flog_set_ringbuffer_all(uint32_t size)
-{
-    flog.ring_buffer_all.buffer = flog_port_malloc(size);
-    if (flog.ring_buffer_all.buffer)
-    {
-        flog.ring_buffer_all.size = size;
-    }
-}
-#else
+#ifndef FLEXILOG_AUTO_MALLOC
 void flog_set_ringbuffer_all(char *buffer, uint32_t size)
 {
-    if (buffer)
-     {
-         flog.ring_buffer_all.buffer = buffer;
-         flog.ring_buffer_all.size = size;
-     }
+    flog_rb_init(flog.ring_buffer_all, buffer, size);
 }
 #endif // FLEXILOG_AUTO_MALLOC
+/**
+ * @brief 读取所有日志
+ * @param data 输出缓冲区
+ * @param size 缓冲区长度
+ * @return 读取长度
+ */
 uint32_t flog_read_all(char *data, uint32_t size)
 {
     return flog_rb_read_lines(&flog.ring_buffer_all, data, size);
 }
 #endif // FLEXILOG_USE_ALL_LOG_RING_BUFFER
 #ifdef FLEXILOG_USE_OUTPUT_LOG_RING_BUFFER
-#ifdef FLEXILOG_AUTO_MALLOC
-void flog_set_ringbuffer_output(uint32_t size)
-{
-    flog.ring_buffer_output.buffer = flog_port_malloc(size);
-    if (flog.ring_buffer_output.buffer)
-    {
-        flog.ring_buffer_output.size = size;
-    }
-}
-#else
+#ifndef FLEXILOG_AUTO_MALLOC
 void flog_set_ringbuffer_output(char *buffer, uint32_t size)
 {
-        if (buffer)
-    {
-        flog.ring_buffer_all.buffer = buffer;
-        flog.ring_buffer_all.size = size;
-    }
+    flog_rb_init(flog.ring_buffer_all, buffer, size);
 }
 #endif // FLEXILOG_AUTO_MALLOC
+/**
+ * @brief 读取输出日志
+ * @param data 输出缓冲区
+ * @param size 缓冲区长度
+ * @return 读取长度
+ */
 uint32_t flog_read_output(char *data, uint32_t size)
 {
     return flog_rb_read_lines(&flog.ring_buffer_output, data, size);
@@ -317,25 +292,18 @@ uint32_t flog_read_output(char *data, uint32_t size)
 #endif // FLEXILOG_USE_OUTPUT_LOG_RING_BUFFER
 
 #ifdef FLEXILOG_USE_RECOD_LOG_RING_BUFFER
-#ifdef FLEXILOG_AUTO_MALLOC
-void flog_set_ringbuffer_recod(uint32_t size)
-{
-    flog.ring_buffer_recod.buffer = flog_port_malloc(size);
-    if (flog.ring_buffer_recod.buffer)
-    {
-        flog.ring_buffer_recod.size = size;
-    }
-}
-#else
+#ifndef FLEXILOG_AUTO_MALLOC
 void flog_set_ringbuffer_recod(char *buffer, uint32_t size)
 {
-    if (buffer)
-    {
-        flog.ring_buffer_recod.buffer = buffer;
-        flog.ring_buffer_recod.size = size;
-    }
+    flog_rb_init(flog.ring_buffer_recod, buffer, size);
 }
 #endif // FLEXILOG_AUTO_MALLOC
+/**
+ * @brief 读取记录日志
+ * @param data 输出缓冲区
+ * @param size 缓冲区长度
+ * @return 读取长度
+ */
 uint32_t flog_read_record(char *data, uint32_t size)
 {
     return flog_rb_read_lines(&flog.ring_buffer_recod, data, size);
@@ -343,20 +311,7 @@ uint32_t flog_read_record(char *data, uint32_t size)
 #endif  // FLEXILOG_USE_RECOD_LOG_RING_BUFFER
 
 #ifdef FLEXILOG_USE_EVENT_LOG_RING_BUFFER
-#ifdef FLEXILOG_AUTO_MALLOC
-void flog_set_ringbuffer_event(uint32_t size)
-{
-    for (int i = 0; i < FLOG_EVENT_NUM; ++i)
-    {
-        flog.event_ring_buffer[i].event = i;
-        flog.event_ring_buffer[i].ring_bufer.buffer = flog_port_malloc(size / FLOG_EVENT_NUM);
-        if (flog.event_ring_buffer[i].ring_bufer.buffer)
-        {
-            flog.event_ring_buffer[i].ring_bufer.size = size / FLOG_EVENT_NUM;
-        }
-    }
-}
-#else
+#ifndef FLEXILOG_AUTO_MALLOC
 void flog_set_ringbuffer_event(char *buffer, uint32_t size)
 {
     uint32_t offset = 0;
@@ -366,12 +321,18 @@ void flog_set_ringbuffer_event(char *buffer, uint32_t size)
         {
             offset = i * size / FLOG_EVENT_NUM;
             flog.event_ring_buffer[i].event = i;
-            flog.event_ring_buffer[i].ring_bufer.buffer = buffer + offset;
-            flog.event_ring_buffer[i].ring_bufer.size = size / FLOG_EVENT_NUM;
+            flog_rb_init(flog.event_ring_buffer[i].ring_bufer, buffer + offset, size / FLOG_EVENT_NUM);
         }
     }
 }
 #endif // FLEXILOG_AUTO_MALLOC
+/**
+ * @brief 读取事件日志
+ * @param event  事件
+ * @param data 输出缓冲区
+ * @param size 缓冲区长度
+ * @return 读取长度
+ */
 uint32_t flog_read_event(FLOG_EVENT event, char *data, uint32_t size)
 {
     for (int i = 0; i < FLOG_EVENT_NUM; ++i)
@@ -384,6 +345,12 @@ uint32_t flog_read_event(FLOG_EVENT event, char *data, uint32_t size)
     return 0;
 }
 
+/**
+ * @brief 写入事件日志
+ * @param event  事件
+ * @param data 日志
+ * @param size 日志长度
+ */
 static void flog_write_event_ring_buffer(FLOG_EVENT event, char *data, uint32_t size)
 {
     for (int i = 0; i < FLOG_EVENT_NUM; ++i)
@@ -394,14 +361,10 @@ static void flog_write_event_ring_buffer(FLOG_EVENT event, char *data, uint32_t 
         }
     }
 }
-
 #endif // FLEXILOG_USE_EVENT_LOG_RING_BUFFER
 
 
-
-
 #if (FLEXILOG_TAG_FILTER_NUM > 0)
-
 /**
  * @brief 设置tag过滤等级
  * @param tag  tag
@@ -426,7 +389,7 @@ void flog_set_tag_filter(const char *tag, FLOG_LEVEL level)
  * @return true     在过滤列表中
  * @return false    不在过滤列表中
  */
-bool flog_is_tag_in_filter(const char *tag)
+static bool flog_is_tag_in_filter(const char *tag)
 {
     for (int i = 0; i < FLEXILOG_TAG_FILTER_NUM; ++i)
     {
@@ -446,7 +409,7 @@ bool flog_is_tag_in_filter(const char *tag)
  * @param tag  tag
  * @return FLOG_LEVEL  tag过滤等级
  */
-FLOG_LEVEL flog_get_tag_filter_level(const char *tag)
+static FLOG_LEVEL flog_get_tag_filter_level(const char *tag)
 {
     for (int i = 0; i < FLEXILOG_TAG_FILTER_NUM; ++i)
     {
@@ -462,6 +425,16 @@ FLOG_LEVEL flog_get_tag_filter_level(const char *tag)
 }
 
 #endif // (FLEXILOG_TAG_FILTER_NUM > 0)
+
+/**
+ * @brief 设置等级格式
+ * @param level 等级
+ * @param fmt 格式
+ */
+void flog_set_level_fmt(FLOG_LEVEL level, uint16_t fmt)
+{
+    flog.level_fmt[level] = fmt;
+}
 
 /**
  * @brief 启用格式
@@ -485,6 +458,27 @@ void flog_disable_fmt(FLOG_LEVEL level, uint16_t fmt)
     flog_set_level_fmt(level, flog.level_fmt[level] & (~fmt));
 }
 
+/**
+ * @brief 设置字体颜色
+ * @param level 等级
+ * @param color 颜色
+ */
+void flog_set_font_color(FLOG_LEVEL level, FLOG_FONT_COLOR color)
+{
+    flog_enable_fmt(level, FLOG_FMT_FONT_COLOR);
+    flog.font_color[level] = color;
+}
+
+/**
+ * @brief 设置背景颜色
+ * @param level 等级
+ * @param color 颜色
+ */
+void flog_set_bg_color(FLOG_LEVEL level, FLOG_BG_COLOR color)
+{
+    flog_enable_fmt(level, FLOG_FMT_BG_COLOR);
+    flog.bg_color[level] = color;
+}
 
 /**
  * @brief printf
@@ -512,6 +506,16 @@ void flog_printf(bool write_ring_buffer, const char *fmt, ...)
     FLOG_UNLOCK();
 }
 
+/**
+ * @brief 输出日志
+ * @param level 等级
+ * @param tag  tag
+ * @param file 文件名
+ * @param func 函数名
+ * @param line 行号
+ * @param fmt  格式
+ * @param ...  参数
+ */
 void flog_output(FLOG_LEVEL level, const char *tag, const char *file, const char *func, uint32_t line, const char *fmt, ...)
 {
 #ifndef FLEXILOG_USE_ALL_LOG_RING_BUFFER
@@ -551,6 +555,7 @@ void flog_output(FLOG_LEVEL level, const char *tag, const char *file, const char
             log_size += flog_strcat(flog.line_buffer + log_size, FLOG_COLOR_ADD, FLEXILOG_LINE_MAX_LENGTH);
             log_size += flog_strcat(flog.line_buffer + log_size, flog_bg_color_table[flog.bg_color[level]], FLEXILOG_LINE_MAX_LENGTH);
         }
+        log_size += flog_strcat(flog.line_buffer + log_size, FLOG_COLOR_END, FLEXILOG_LINE_MAX_LENGTH);
     }
 
     /* 添加时间 */
@@ -698,7 +703,6 @@ void flog_output_event(FLOG_EVENT event, const char *file, const char *func, uin
 
     flog_port_output(flog.line_buffer, log_size);
     FLOG_UNLOCK();
-
 }
 #endif // FLEXILOG_USE_EVENT_LOG_RING_BUFFER
 
