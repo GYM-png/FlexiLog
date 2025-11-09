@@ -1,15 +1,19 @@
 # FlexiLog - 灵活高效的嵌入式日志库
 
 ![FlexiLog Logo](https://img.shields.io/badge/FlexiLog-v1.0-brightgreen)
+[![GitHub stars](https://img.shields.io/github/stars/GYM-png/FlexiLog?style=social)](https://github.com/GYM-png/FlexiLog/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/GYM-png/FlexiLog?style=social)](https://github.com/GYM-png/FlexiLog/network/members)
 ![License](https://img.shields.io/badge/License-Custom-blue)
 ![Platform](https://img.shields.io/badge/Platform-Embedded%20%7C%20Windows-orange)
+
+[中文](https://github.com/GYM-png/FlexiLog/blob/master/README.md)|[English](https://github.com/GYM-png/FlexiLog/blob/master/README_EN.md)
 
 **FlexiLog** 是一款专为嵌入式系统和资源受限环境设计的**高性能、可配置、支持多缓冲区日志系统**。它提供丰富的日志格式控制、等级过滤、标签过滤、环形缓冲区缓存、事件日志、颜色输出以及硬件抽象层（HAL）接口，适用于裸机、RTOS 以及 Windows 开发调试。
 
 > 作者：GYM  
 > 邮箱：48060945@qq.com  
 > 日期：2025-11-06  
-> 版本：v1.0  
+> 版本：v1.0.0  
 > 仓库：[https://github.com/GYM-png/FlexiLog](https://github.com/GYM-png/FlexiLog)
 
 ---
