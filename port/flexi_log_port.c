@@ -1,7 +1,7 @@
 /**
  * ==================================================
  *  @file flexi_log_port.c
- *  @brief TODO 描述该文件的功能
+ *  @brief flexi log 外部接口
  *  @author GYM (48060945@qq.com)
  *  @date 2025-11-06 下午9:49
  *  @version 1.0
@@ -19,6 +19,10 @@
 #include <stdlib.h>
 static HANDLE hSerial = INVALID_HANDLE_VALUE;
 static int is_initialized = 0;
+
+/**
+ * @brief 硬件外设初始化
+ */
 void flog_port_init(void)
 {
     /* TODO: 添加初始化代码 */
@@ -77,6 +81,11 @@ void flog_port_init(void)
     printf("[Serial] %s init success (115200 8N1)\n", "COM2");
 }
 
+/**
+ * @brief 硬件外设输出
+ * @param buf 输出数据
+ * @param size 输出数据长度
+ */
 void flog_port_output(const char *buf, size_t size)
 {
     /* TODO: 添加写入代码 */
@@ -93,22 +102,34 @@ void flog_port_output(const char *buf, size_t size)
     }
 }
 
+/**
+ * @brief 加锁
+ */
 void flog_port_lock(void)
 {
     /* TODO: 添加锁代码 */
 }
 
+/**
+ * @brief 解锁
+ */
 void flog_port_unlock(void)
 {
     /* TODO: 添加解锁代码 */
 }
 
+/**
+ * @brief 获取时间
+ */
 const char *flog_port_get_time(void)
 {
     static char time_str[] = "2025-11-06 17:05:05.000";
     return time_str;
 }
 
+/**
+ * @brief 获取线程ID
+ */
 const char *flog_port_get_thread(void)
 {
     static char thread_id_str[] = "0x00000000";
@@ -116,17 +137,19 @@ const char *flog_port_get_thread(void)
 }
 
 #ifdef FLEXILOG_AUTO_MALLOC
+/**
+ * @brief 内存分配
+ */
 void *flog_port_malloc(size_t size)
 {
     return malloc(size);
 }
 
+/**
+ * @brief 内存释放
+ */
 void flog_port_free(void *ptr)
 {
     free(ptr);
 }
-
-
-
-
 #endif

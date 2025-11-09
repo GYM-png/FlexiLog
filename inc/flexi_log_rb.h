@@ -1,7 +1,7 @@
 /**
  * ==================================================
  *  @file flexi_log_rb.h
- *  @brief TODO 描述该文件的功能
+ *  @brief flexi log 环形缓冲区
  *  @author GYM (48060945@qq.com)
  *  @date 2025-11-06 下午11:11
  *  @version 1.0
@@ -17,6 +17,7 @@
 #ifdef FLEXILOG_USE_RING_BUFFER
 #include "stdint.h"
 
+/* 环形缓冲区 */
 typedef struct
 {
     char *buffer;

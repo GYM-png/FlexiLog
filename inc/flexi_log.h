@@ -1,15 +1,13 @@
 /**
  * ==================================================
  *  @file flexi_log.h
- *  @brief TODO 描述该文件的功能
+ *  @brief flexi log 日志库头文件
  *  @author GYM (48060945@qq.com)
  *  @date 2025-11-06 下午10:10
  *  @version 1.0
  *  @copyright Copyright (c) 2025 GYM. All Rights Reserved.
  * ==================================================
  */
-
-
 #ifndef FLEXILOG_FLEXI_LOG_H
 #define FLEXILOG_FLEXI_LOG_H
 
@@ -26,7 +24,7 @@
                                 }while(0);
 
 
-
+/* 基本参数配置 */
 #define FLEXILOG_LINE_MAX_LENGTH 1024        /* 单行日志最大长度 */
 #define FLEXILOG_FILE_NAME_MAX_LENGTH 20     /* 文件名最大长度 */
 #define FLEXILOG_FUNCTION_NAME_MAX_LENGTH 40 /* 函数名最大长度 */
@@ -36,7 +34,7 @@
 
 /* 多种环形缓冲区定义 */
 #ifdef FLEXILOG_USE_RING_BUFFER
-#define FLEXILOG_AUTO_MALLOC                    /* 使用自动分配内存 */
+//#define FLEXILOG_AUTO_MALLOC                    /* 使用自动分配内存 */
 #define FLEXILOG_USE_ALL_LOG_RING_BUFFER        /* 使用全部环形缓冲区    @note 会对所有日志进行记录，不受任何过滤影响 */
 #define FLEXILOG_USE_OUTPUT_LOG_RING_BUFFER     /* 使用输出环形缓冲区    @note 会记录所有向硬件输出的日志 */
 #define FLEXILOG_USE_RECOD_LOG_RING_BUFFER      /* 使用记录环形缓冲区    @note 会记录特定等级以上的日志，默认为FLOG_LEVEL_RECORD */
@@ -56,6 +54,27 @@
 #ifdef FLEXILOG_USE_EVENT_LOG_RING_BUFFER
 #define FLEXILOG_EVENT_RING_BUFFER_SIZE (1 * 1024) /* 事件环形缓冲区 的大小 */
 #endif
+#else
+/* 环形缓冲区的初始化参数 */
+typedef struct
+{
+#ifdef FLEXILOG_USE_ALL_LOG_RING_BUFFER
+    uint32_t all_buffer_size;    /* 全部环形缓冲区 的大小 */
+    char *all_log_buffer;        /* 存储全部日志的缓冲区 */
+#endif
+#ifdef FLEXILOG_USE_OUTPUT_LOG_RING_BUFFER
+    uint32_t output_buffer_size;    /* 输出环形缓冲区 的大小 */
+    char *output_log_buffer;        /* 存储输出日志的缓冲区 */
+#endif
+#ifdef FLEXILOG_USE_RECOD_LOG_RING_BUFFER
+    uint32_t recod_buffer_size;    /* 记录环形缓冲区 的大小 */
+    char *recod_log_buffer;       /* 存储记录日志的缓冲区 */
+#endif
+#ifdef FLEXILOG_USE_EVENT_LOG_RING_BUFFER
+    uint32_t event_buffer_size;    /* 事件环形缓冲区 的大小 */
+    char *event_log_buffer;        /* 存储事件日志的缓冲区 */
+#endif
+}FLOG_RingBuffer_Init_Paremeter;
 #endif // FLEXILOG_AUTO_MALLOC
 
 /* 事件定义 */
@@ -77,13 +96,13 @@ typedef enum
  */
 typedef enum
 {
-    FLOG_LEVEL_DEBUG = 0,
-    FLOG_LEVEL_INFO,
-    FLOG_LEVEL_WARN,
-    FLOG_LEVEL_ERROR,
-    FLOG_LEVEL_RECORD,
-    FLOG_LEVEL_ASSERT,
-    FLOG_LEVEL_UNVALID
+    FLOG_LEVEL_DEBUG = 0,   /* 调试信息 */
+    FLOG_LEVEL_INFO,        /* 提示信息 */
+    FLOG_LEVEL_WARN,        /* 警告信息 */
+    FLOG_LEVEL_ERROR,       /* 错误信息 */
+    FLOG_LEVEL_RECORD,      /* 记录信息 */
+    FLOG_LEVEL_ASSERT,      /* 断言信息 */
+    FLOG_LEVEL_UNVALID      /* 无效等级 */
 }FLOG_LEVEL;
 
 /**
@@ -91,17 +110,17 @@ typedef enum
  */
 typedef enum
 {
-    FLOG_FMT_NONE       = 0x00,     // 无格式
-    FLOG_FMT_TIME       = 0x01 << 0,// 时间信息
-    FLOG_FMT_LEVEL      = 0x01 << 1,// 等级信息
-    FLOG_FMT_FILE       = 0x01 << 2,// 文件信息
-    FLOG_FMT_FUNC       = 0x01 << 3,// 函数信息
-    FLOG_FMT_LINE       = 0x01 << 4,// 行号信息
-    FLOG_FMT_THREAD     = 0x01 << 5,// 线程信息
-    FLOG_FMT_TAG        = 0x01 << 6,// 标签信息
-    FLOG_FMT_FONT_COLOR = 0x01 << 7,// 字体颜色信息
-    FLOG_FMT_BG_COLOR   = 0x01 << 8,// 背景颜色信息
-    FLOG_FMT_ALL        = 0x1FFF    // 所有格式
+    FLOG_FMT_NONE       = 0x00,      /* 无格式 */
+    FLOG_FMT_TIME       = 0x01 << 0, /* 时间信息 */
+    FLOG_FMT_LEVEL      = 0x01 << 1, /* 等级信息 */
+    FLOG_FMT_FILE       = 0x01 << 2, /* 文件信息 */
+    FLOG_FMT_FUNC       = 0x01 << 3, /* 函数信息 */
+    FLOG_FMT_LINE       = 0x01 << 4, /* 行号信息 */
+    FLOG_FMT_THREAD     = 0x01 << 5, /* 线程信息 */
+    FLOG_FMT_TAG        = 0x01 << 6, /* 标签信息 */
+    FLOG_FMT_FONT_COLOR = 0x01 << 7, /* 字体颜色信息 */
+    FLOG_FMT_BG_COLOR   = 0x01 << 8, /* 背景颜色信息 */
+    FLOG_FMT_ALL        = 0x1FFF     /* 所有格式 */
 }FLOG_FMT;
 
 /**
@@ -109,30 +128,24 @@ typedef enum
  */
 typedef enum
 {
-    FLOG_FMT_FONT_COLOR_RED = 0,    /* 红色 */
-    FLOG_FMT_FONT_COLOR_GREEN,      /* 绿色 */
-    FLOG_FMT_FONT_COLOR_YELLOW,     /* 黄色 */
-    FLOG_FMT_FONT_COLOR_BLUE,       /* 蓝色 */
-    FLOG_FMT_FONT_COLOR_PURPLE,     /* 紫色 */
-    FLOG_FMT_FONT_COLOR_CYAN,       /* 青色 */
-    FLOG_FMT_FONT_COLOR_WHITE,      /* 白色 */
-    FLOG_FMT_FONT_COLOR_UNVALID     /* 无效颜色 */
-}FLOG_FONT_COLOR;
-
-/**
- * @brief 背景颜色
- */
-typedef enum
-{
-    FLOG_FMT_BG_COLOR_RED = 0,      /* 红色 */
-    FLOG_FMT_BG_COLOR_GREEN,        /* 绿色 */
-    FLOG_FMT_BG_COLOR_YELLOW,       /* 黄色 */
-    FLOG_FMT_BG_COLOR_BLUE,         /* 蓝色 */
-    FLOG_FMT_BG_COLOR_PURPLE,       /* 紫色 */
-    FLOG_FMT_BG_COLOR_CYAN,         /* 青色 */
-    FLOG_FMT_BG_COLOR_WHITE,        /* 白色 */
-    FLOG_FMT_BG_COLOR_UNVALID       /* 无效颜色 */
-}FLOG_BG_COLOR;
+    FLOG_COLOR_BLACK = 0,       /* 黑色 */
+    FLOG_COLOR_RED,             /* 红色 */
+    FLOG_COLOR_GREEN,           /* 绿色 */
+    FLOG_COLOR_YELLOW,          /* 黄色 */
+    FLOG_COLOR_BLUE,            /* 蓝色 */
+    FLOG_COLOR_PURPLE,          /* 紫色 */
+    FLOG_COLOR_CYAN,            /* 青色 */
+    FLOG_COLOR_WHITE,           /* 白色 */
+    FLOG_COLOR_LIGHT_BLACK,     /* 亮黑色 */
+    FLOG_COLOR_LIGHT_RED,       /* 亮红色 */
+    FLOG_COLOR_LIGHT_GREEN,     /* 亮绿色 */
+    FLOG_COLOR_LIGHT_YELLOW,    /* 亮黄色 */
+    FLOG_COLOR_LIGHT_BLUE,      /* 亮蓝色 */
+    FLOG_COLOR_LIGHT_PURPLE,    /* 亮紫色 */
+    FLOG_COLOR_LIGHT_CYAN,      /* 亮青色 */
+    FLOG_COLOR_LIGHT_WHITE,     /* 亮白色 */
+    FLOG_COLOR_UNVALID     /* 无效颜色 */
+}FLOG_COLOR;
 
 /**
  * @brief 数据类型
@@ -145,13 +158,19 @@ typedef enum
 }FLOG_DATA_TYPE;
 
 
+#ifdef FLEXILOG_AUTO_MALLOC
 void flog_init(void);
+#else
+void flog_init(FLOG_RingBuffer_Init_Paremeter *parameter);
+#endif
 
 void flog_enable_fmt(FLOG_LEVEL level, uint16_t fmt);
 void flog_disable_fmt(FLOG_LEVEL level, uint16_t fmt);
 void flog_set_level_fmt(FLOG_LEVEL level, uint16_t fmt);
-void flog_set_font_color(FLOG_LEVEL level, FLOG_FONT_COLOR color);
-void flog_set_bg_color(FLOG_LEVEL level, FLOG_BG_COLOR color);
+void flog_set_font_color(FLOG_LEVEL level, FLOG_COLOR color);
+void flog_set_bg_color(FLOG_LEVEL level, FLOG_COLOR color);
+
+void flog_set_global_filter(FLOG_LEVEL level);
 #if (FLEXILOG_TAG_FILTER_NUM > 0)
 void flog_set_tag_filter(const char *tag, FLOG_LEVEL level);
 #endif
@@ -163,44 +182,32 @@ void flog_hex_dump(char *tag, void *title, uint32_t size, FLOG_DATA_TYPE type);
 void flog_output_event(FLOG_EVENT event, const char *file, const char *func, uint32_t line, const char *fmt, ...);
 #endif
 
-/* 环形缓冲区相关接口 */
+/* 环形缓冲区读取接口 */
 #ifdef FLEXILOG_USE_ALL_LOG_RING_BUFFER
 uint32_t flog_read_all(char *data, uint32_t size);
-#ifndef FLEXILOG_AUTO_MALLOC
-void flog_set_ringbuffer_all(char *buffer, uint32_t size);
-#endif // FLEXILOG_AUTO_MALLOC
 #endif // FLEXILOG_USE_ALL_LOG_RING_BUFFER
 
 #ifdef FLEXILOG_USE_OUTPUT_LOG_RING_BUFFER
 uint32_t flog_read_output(char *data, uint32_t size);
-#ifndef FLEXILOG_AUTO_MALLOC
-void flog_set_ringbuffer_output(char *buffer, uint32_t size);
-#endif
 #endif // FLEXILOG_USE_OUTPUT_LOG_RING_BUFFER
 
 #ifdef FLEXILOG_USE_RECOD_LOG_RING_BUFFER
 uint32_t flog_read_record(char *data, uint32_t size);
-#ifndef FLEXILOG_AUTO_MALLOC
-void flog_set_ringbuffer_recod(char *buffer, uint32_t size);
-#endif
 #endif // FLEXILOG_USE_RECOD_LOG_RING_BUFFER
 
 #ifdef FLEXILOG_USE_EVENT_LOG_RING_BUFFER
 uint32_t flog_read_event(FLOG_EVENT event, char *data, uint32_t size);
-#ifndef FLEXILOG_AUTO_MALLOC
-void flog_set_ringbuffer_event(char *buffer, uint32_t size);
-#endif
 #endif // FLEXILOG_USE_EVENT_LOG_RING_BUFFER
 
-
-#define log_printf(...) flog_printf(true, __VA_ARGS__);
-#define logd(...) flog_output(FLOG_LEVEL_DEBUG, FLOG_TAG, __FILE_NAME__, __FUNCTION__,  __LINE__, __VA_ARGS__)
-#define logi(...) flog_output(FLOG_LEVEL_INFO, FLOG_TAG, __FILE_NAME__, __FUNCTION__,  __LINE__, __VA_ARGS__)
-#define logw(...) flog_output(FLOG_LEVEL_WARN, FLOG_TAG, __FILE_NAME__, __FUNCTION__,  __LINE__, __VA_ARGS__)
-#define loge(...) flog_output(FLOG_LEVEL_ERROR, FLOG_TAG, __FILE_NAME__, __FUNCTION__,  __LINE__, __VA_ARGS__)
-#define logr(...) flog_output(FLOG_LEVEL_RECORD, FLOG_TAG, __FILE_NAME__, __FUNCTION__,  __LINE__, __VA_ARGS__)
-#define loga(...) flog_output(FLOG_LEVEL_ASSERT, FLOG_TAG, __FILE_NAME__, __FUNCTION__,  __LINE__, __VA_ARGS__)
+/* 日志接口输出 */
+#define log_printf(...) flog_printf(true, __VA_ARGS__); /* 全功能printf 函数, 不受任何配置影响 */
+#define logd(...) flog_output(FLOG_LEVEL_DEBUG, FLOG_TAG, __FILE_NAME__, __FUNCTION__,  __LINE__, __VA_ARGS__)  /* 调试日志 */
+#define logi(...) flog_output(FLOG_LEVEL_INFO, FLOG_TAG, __FILE_NAME__, __FUNCTION__,  __LINE__, __VA_ARGS__)   /* 提示日志 */
+#define logw(...) flog_output(FLOG_LEVEL_WARN, FLOG_TAG, __FILE_NAME__, __FUNCTION__,  __LINE__, __VA_ARGS__)   /* 警告日志 */
+#define loge(...) flog_output(FLOG_LEVEL_ERROR, FLOG_TAG, __FILE_NAME__, __FUNCTION__,  __LINE__, __VA_ARGS__)  /* 错误日志 */
+#define logr(...) flog_output(FLOG_LEVEL_RECORD, FLOG_TAG, __FILE_NAME__, __FUNCTION__,  __LINE__, __VA_ARGS__) /* 记录日志 */
+#define loga(...) flog_output(FLOG_LEVEL_ASSERT, FLOG_TAG, __FILE_NAME__, __FUNCTION__,  __LINE__, __VA_ARGS__) /* 断言日志 */
 #ifdef FLEXILOG_USE_EVENT_LOG_RING_BUFFER
-#define log_event(event, ...) flog_output_event(event, __FILE_NAME__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define log_event(event, ...) flog_output_event(event, __FILE_NAME__, __FUNCTION__, __LINE__, __VA_ARGS__)      /* 事件日志 */
 #endif
 #endif //FLEXILOG_FLEXI_LOG_H

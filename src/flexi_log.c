@@ -1,15 +1,13 @@
 /**
  * ==================================================
  *  @file flexi_log.c
- *  @brief TODO 描述该文件的功能
+ *  @brief flexi log核心实现文件
  *  @author GYM (48060945@qq.com)
  *  @date 2025-11-06 下午10:10
  *  @version 1.0
  *  @copyright Copyright (c) 2025 GYM. All Rights Reserved.
  * ==================================================
  */
-
-
 #include "flexi_log.h"
 #include "flexi_log_until.h"
 #include "stdbool.h"
@@ -44,7 +42,7 @@ extern void flog_port_free(void *ptr);
 
 #define FLOG_COLOR_REST  "\x1B[0m"
 
-
+#define FLOG_FONT_COLOR_BLACK    "30"
 #define FLOG_FONT_COLOR_RED      "31"
 #define FLOG_FONT_COLOR_GREEN    "32"
 #define FLOG_FONT_COLOR_YELLOW   "33"
@@ -52,7 +50,16 @@ extern void flog_port_free(void *ptr);
 #define FLOG_FONT_COLOR_PURPLE   "35"
 #define FLOG_FONT_COLOR_CYAN     "36"
 #define FLOG_FONT_COLOR_WHITE    "37"
+#define FLOG_FONT_COLOR_LIGHT_BLACK    "100"
+#define FLOG_FONT_COLOR_LIGHT_RED      "91"
+#define FLOG_FONT_COLOR_LIGHT_GREEN    "92"
+#define FLOG_FONT_COLOR_LIGHT_YELLOW   "93"
+#define FLOG_FONT_COLOR_LIGHT_BLUE     "94"
+#define FLOG_FONT_COLOR_LIGHT_PURPLE   "95"
+#define FLOG_FONT_COLOR_LIGHT_CYAN     "96"
+#define FLOG_FONT_COLOR_LIGHT_WHITE    "97"
 
+#define FLOG_BG_COLOR_BLACK    "40"
 #define FLOG_BG_COLOR_RED      "41"
 #define FLOG_BG_COLOR_GREEN    "42"
 #define FLOG_BG_COLOR_YELLOW   "43"
@@ -60,6 +67,14 @@ extern void flog_port_free(void *ptr);
 #define FLOG_BG_COLOR_PURPLE   "45"
 #define FLOG_BG_COLOR_CYAN     "46"
 #define FLOG_BG_COLOR_WHITE    "47"
+#define FLOG_BG_COLOR_LIGHT_BLACK    "100"
+#define FLOG_BG_COLOR_LIGHT_RED      "101"
+#define FLOG_BG_COLOR_LIGHT_GREEN    "102"
+#define FLOG_BG_COLOR_LIGHT_YELLOW   "103"
+#define FLOG_BG_COLOR_LIGHT_BLUE     "104"
+#define FLOG_BG_COLOR_LIGHT_PURPLE   "105"
+#define FLOG_BG_COLOR_LIGHT_CYAN     "106"
+#define FLOG_BG_COLOR_LIGHT_WHITE    "107"
 
 /**
  * @brief 等级提示
@@ -98,29 +113,47 @@ extern void flog_port_free(void *ptr);
 /**
  * @brief 文本颜色表
  */
-static const char *flog_font_color_table[FLOG_FMT_FONT_COLOR_UNVALID] =
+static const char *flog_font_color_table[FLOG_COLOR_UNVALID] =
 {
-    FLOG_FONT_COLOR_RED,
-    FLOG_FONT_COLOR_GREEN,
-    FLOG_FONT_COLOR_YELLOW,
-    FLOG_FONT_COLOR_BLUE,
-    FLOG_FONT_COLOR_PURPLE,
-    FLOG_FONT_COLOR_CYAN,
-    FLOG_FONT_COLOR_WHITE
+        FLOG_FONT_COLOR_BLACK,
+        FLOG_FONT_COLOR_RED,
+        FLOG_FONT_COLOR_GREEN,
+        FLOG_FONT_COLOR_YELLOW,
+        FLOG_FONT_COLOR_BLUE,
+        FLOG_FONT_COLOR_PURPLE,
+        FLOG_FONT_COLOR_CYAN,
+        FLOG_FONT_COLOR_WHITE,
+        FLOG_FONT_COLOR_LIGHT_BLACK,
+        FLOG_FONT_COLOR_LIGHT_RED,
+        FLOG_FONT_COLOR_LIGHT_GREEN,
+        FLOG_FONT_COLOR_LIGHT_YELLOW,
+        FLOG_FONT_COLOR_LIGHT_BLUE,
+        FLOG_FONT_COLOR_LIGHT_PURPLE,
+        FLOG_FONT_COLOR_LIGHT_CYAN,
+        FLOG_FONT_COLOR_LIGHT_WHITE,
 };
 
 /**
  * @brief 背景颜色表
  */
-static const char *flog_bg_color_table[FLOG_FMT_BG_COLOR_UNVALID] =
+static const char *flog_bg_color_table[FLOG_COLOR_UNVALID] =
 {
-    FLOG_BG_COLOR_RED,
-    FLOG_BG_COLOR_GREEN,
-    FLOG_BG_COLOR_YELLOW,
-    FLOG_BG_COLOR_BLUE,
-    FLOG_BG_COLOR_PURPLE,
-    FLOG_BG_COLOR_CYAN,
-    FLOG_BG_COLOR_WHITE
+        FLOG_BG_COLOR_BLACK,
+        FLOG_BG_COLOR_RED,
+        FLOG_BG_COLOR_GREEN,
+        FLOG_BG_COLOR_YELLOW,
+        FLOG_BG_COLOR_BLUE,
+        FLOG_BG_COLOR_PURPLE,
+        FLOG_BG_COLOR_CYAN,
+        FLOG_BG_COLOR_WHITE,
+        FLOG_BG_COLOR_LIGHT_BLACK,
+        FLOG_BG_COLOR_LIGHT_RED,
+        FLOG_BG_COLOR_LIGHT_GREEN,
+        FLOG_BG_COLOR_LIGHT_YELLOW,
+        FLOG_BG_COLOR_LIGHT_BLUE,
+        FLOG_BG_COLOR_LIGHT_PURPLE,
+        FLOG_BG_COLOR_LIGHT_CYAN,
+        FLOG_BG_COLOR_LIGHT_WHITE
 };
 
 /**
@@ -144,8 +177,8 @@ typedef struct
 {
     char line_buffer[FLEXILOG_LINE_MAX_LENGTH];
     uint16_t level_fmt[FLOG_LEVEL_UNVALID];          // 每个日志等级对应的格式
-    FLOG_FONT_COLOR font_color[FLOG_LEVEL_UNVALID]; // 每个日志等级对应的字体颜色
-    FLOG_BG_COLOR bg_color[FLOG_LEVEL_UNVALID];     // 每个日志等级对应的背景颜色
+    FLOG_COLOR font_color[FLOG_LEVEL_UNVALID]; // 每个日志等级对应的字体颜色
+    FLOG_COLOR bg_color[FLOG_LEVEL_UNVALID];     // 每个日志等级对应的背景颜色
     bool hardware_output_enable;
     bool output_lock_enbale;
     bool output_color_enable;
@@ -183,24 +216,33 @@ typedef struct
 }flog_t;
 static flog_t flog;
 
+
+#ifdef FLEXILOG_AUTO_MALLOC
 /**
  * @brief 初始化
  */
 void flog_init(void)
+#else
+/**
+ * @brief 静态初始化
+ * @param parameter 静态初始化参数
+ */
+void flog_init(FLOG_RingBuffer_Init_Paremeter *parameter)
+#endif
 {
     flog_port_init();
-    flog.font_color[FLOG_LEVEL_DEBUG] = FLOG_FMT_FONT_COLOR_WHITE;
-    flog.font_color[FLOG_LEVEL_INFO] = FLOG_FMT_FONT_COLOR_GREEN;
-    flog.font_color[FLOG_LEVEL_WARN] = FLOG_FMT_FONT_COLOR_YELLOW;
-    flog.font_color[FLOG_LEVEL_ERROR] = FLOG_FMT_FONT_COLOR_RED;
-    flog.font_color[FLOG_LEVEL_RECORD] = FLOG_FMT_FONT_COLOR_CYAN;
-    flog.font_color[FLOG_LEVEL_ASSERT] = FLOG_FMT_FONT_COLOR_PURPLE;
-    flog.bg_color[FLOG_LEVEL_DEBUG] = FLOG_FMT_BG_COLOR_UNVALID;
-    flog.bg_color[FLOG_LEVEL_INFO] = FLOG_FMT_BG_COLOR_UNVALID;
-    flog.bg_color[FLOG_LEVEL_WARN] = FLOG_FMT_BG_COLOR_UNVALID;
-    flog.bg_color[FLOG_LEVEL_ERROR] = FLOG_FMT_BG_COLOR_UNVALID;
-    flog.bg_color[FLOG_LEVEL_RECORD] = FLOG_FMT_BG_COLOR_UNVALID;
-    flog.bg_color[FLOG_LEVEL_ASSERT] = FLOG_FMT_BG_COLOR_UNVALID;
+    flog.font_color[FLOG_LEVEL_DEBUG] = FLOG_COLOR_LIGHT_WHITE;
+    flog.font_color[FLOG_LEVEL_INFO] = FLOG_COLOR_GREEN;
+    flog.font_color[FLOG_LEVEL_WARN] = FLOG_COLOR_YELLOW;
+    flog.font_color[FLOG_LEVEL_ERROR] = FLOG_COLOR_RED;
+    flog.font_color[FLOG_LEVEL_RECORD] = FLOG_COLOR_PURPLE;
+    flog.font_color[FLOG_LEVEL_ASSERT] = FLOG_COLOR_WHITE;
+    flog.bg_color[FLOG_LEVEL_DEBUG] = FLOG_COLOR_UNVALID;
+    flog.bg_color[FLOG_LEVEL_INFO] = FLOG_COLOR_UNVALID;
+    flog.bg_color[FLOG_LEVEL_WARN] = FLOG_COLOR_UNVALID;
+    flog.bg_color[FLOG_LEVEL_ERROR] = FLOG_COLOR_UNVALID;
+    flog.bg_color[FLOG_LEVEL_RECORD] = FLOG_COLOR_UNVALID;
+    flog.bg_color[FLOG_LEVEL_ASSERT] = FLOG_COLOR_UNVALID;
 
     flog.level_fmt[FLOG_LEVEL_DEBUG] = FLOG_FMT_DEFAULT;
     flog.level_fmt[FLOG_LEVEL_INFO] = FLOG_FMT_DEFAULT;
@@ -223,6 +265,9 @@ void flog_init(void)
     memset(&flog.ring_buffer_all, 0, sizeof(flog_ring_buffer_t));
     #ifdef FLEXILOG_AUTO_MALLOC
     flog_rb_buffer_create(&flog.ring_buffer_all, FLEXILOG_ALL_RING_BUFFER_SIZE);
+    #else
+    flexlog_assert(parameter->all_log_buffer != NULL);
+    flog_rb_init(&flog.ring_buffer_all, parameter->all_log_buffer, parameter->all_buffer_size);
     #endif
 #endif  // FLEXILOG_USE_ALL_LOG_RING_BUFFER
 
@@ -230,6 +275,9 @@ void flog_init(void)
     memset(&flog.ring_buffer_output, 0, sizeof(flog_ring_buffer_t));
     #ifdef FLEXILOG_AUTO_MALLOC
     flog_rb_buffer_create(&flog.ring_buffer_output, FLEXILOG_OUTPUT_RING_BUFFER_SIZE);
+    #else
+    flexlog_assert(parameter->output_log_buffer != NULL);
+    flog_rb_init(&flog.ring_buffer_output, parameter->output_log_buffer, parameter->output_buffer_size);
     #endif
 #endif // FLEXILOG_USE_OUTPUT_LOG_RING_BUFFER
 
@@ -238,17 +286,24 @@ void flog_init(void)
     flog.recod_level = FLOG_LEVEL_RECORD;
     #ifdef FLEXILOG_AUTO_MALLOC
     flog_rb_buffer_create(&flog.ring_buffer_recod, FLEXILOG_RECOD_RING_BUFFER_SIZE);
+    #else
+    flexlog_assert(parameter->recod_log_buffer != NULL);
+    flog_rb_init(&flog.ring_buffer_recod, parameter->recod_log_buffer, parameter->recod_buffer_size);
     #endif
 #endif // FLEXILOG_USE_RECOD_LOG_RING_BUFFER
 
 #ifdef FLEXILOG_USE_EVENT_LOG_RING_BUFFER
-    #ifdef FLEXILOG_AUTO_MALLOC
     for (int i = 0; i < FLOG_EVENT_NUM; ++i)
     {
         flog.event_ring_buffer[i].event = i;
+        #ifdef FLEXILOG_AUTO_MALLOC
         flog_rb_buffer_create(&flog.event_ring_buffer[i].ring_bufer, FLEXILOG_EVENT_RING_BUFFER_SIZE / FLOG_EVENT_NUM);
+        #else
+        flexlog_assert(parameter->event_log_buffer != NULL);
+        uint32_t offset = i * parameter->event_buffer_size / FLOG_EVENT_NUM;
+        flog_rb_init(&flog.event_ring_buffer[i].ring_bufer, parameter->event_log_buffer + offset, parameter->event_buffer_size / FLOG_EVENT_NUM);
+        #endif
     }
-    #endif
 #endif // FLEXILOG_USE_EVENT_LOG_RING_BUFFER
     flog_printf(false, "Flexi Log init ok, version: %s\r\n", FLOG_VERSION);
 }
@@ -258,7 +313,7 @@ void flog_init(void)
 #ifndef FLEXILOG_AUTO_MALLOC
 void flog_set_ringbuffer_all(char *buffer, uint32_t size)
 {
-    flog_rb_init(flog.ring_buffer_all, buffer, size);
+    flog_rb_init(&flog.ring_buffer_all, buffer, size);
 }
 #endif // FLEXILOG_AUTO_MALLOC
 /**
@@ -276,7 +331,7 @@ uint32_t flog_read_all(char *data, uint32_t size)
 #ifndef FLEXILOG_AUTO_MALLOC
 void flog_set_ringbuffer_output(char *buffer, uint32_t size)
 {
-    flog_rb_init(flog.ring_buffer_all, buffer, size);
+    flog_rb_init(&flog.ring_buffer_all, buffer, size);
 }
 #endif // FLEXILOG_AUTO_MALLOC
 /**
@@ -295,7 +350,7 @@ uint32_t flog_read_output(char *data, uint32_t size)
 #ifndef FLEXILOG_AUTO_MALLOC
 void flog_set_ringbuffer_recod(char *buffer, uint32_t size)
 {
-    flog_rb_init(flog.ring_buffer_recod, buffer, size);
+    flog_rb_init(&flog.ring_buffer_recod, buffer, size);
 }
 #endif // FLEXILOG_AUTO_MALLOC
 /**
@@ -321,7 +376,7 @@ void flog_set_ringbuffer_event(char *buffer, uint32_t size)
         {
             offset = i * size / FLOG_EVENT_NUM;
             flog.event_ring_buffer[i].event = i;
-            flog_rb_init(flog.event_ring_buffer[i].ring_bufer, buffer + offset, size / FLOG_EVENT_NUM);
+            flog_rb_init(&flog.event_ring_buffer[i].ring_bufer, buffer + offset, size / FLOG_EVENT_NUM);
         }
     }
 }
@@ -363,6 +418,14 @@ static void flog_write_event_ring_buffer(FLOG_EVENT event, char *data, uint32_t 
 }
 #endif // FLEXILOG_USE_EVENT_LOG_RING_BUFFER
 
+/**
+ * @brief 设置全局过滤等级
+ * @param level 过滤等级
+ */
+void flog_set_global_filter(FLOG_LEVEL level)
+{
+    flog.global_filter_level = level;
+}
 
 #if (FLEXILOG_TAG_FILTER_NUM > 0)
 /**
@@ -463,7 +526,7 @@ void flog_disable_fmt(FLOG_LEVEL level, uint16_t fmt)
  * @param level 等级
  * @param color 颜色
  */
-void flog_set_font_color(FLOG_LEVEL level, FLOG_FONT_COLOR color)
+void flog_set_font_color(FLOG_LEVEL level, FLOG_COLOR color)
 {
     flog_enable_fmt(level, FLOG_FMT_FONT_COLOR);
     flog.font_color[level] = color;
@@ -474,7 +537,7 @@ void flog_set_font_color(FLOG_LEVEL level, FLOG_FONT_COLOR color)
  * @param level 等级
  * @param color 颜色
  */
-void flog_set_bg_color(FLOG_LEVEL level, FLOG_BG_COLOR color)
+void flog_set_bg_color(FLOG_LEVEL level, FLOG_COLOR color)
 {
     flog_enable_fmt(level, FLOG_FMT_BG_COLOR);
     flog.bg_color[level] = color;
@@ -550,7 +613,7 @@ void flog_output(FLOG_LEVEL level, const char *tag, const char *file, const char
     {
         log_size += flog_strcat(flog.line_buffer + log_size, FLOG_COLOR_START, FLEXILOG_LINE_MAX_LENGTH);
         log_size += flog_strcat(flog.line_buffer + log_size, flog_font_color_table[flog.font_color[level]], FLEXILOG_LINE_MAX_LENGTH);
-        if (flog.level_fmt[level] & FLOG_FMT_BG_COLOR && flog.bg_color[level] != FLOG_FMT_BG_COLOR_UNVALID)
+        if (flog.level_fmt[level] & FLOG_FMT_BG_COLOR && flog.bg_color[level] != FLOG_COLOR_UNVALID)
         {
             log_size += flog_strcat(flog.line_buffer + log_size, FLOG_COLOR_ADD, FLEXILOG_LINE_MAX_LENGTH);
             log_size += flog_strcat(flog.line_buffer + log_size, flog_bg_color_table[flog.bg_color[level]], FLEXILOG_LINE_MAX_LENGTH);

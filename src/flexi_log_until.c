@@ -1,18 +1,15 @@
 /**
  * ==================================================
  *  @file flexi_log_until.c
- *  @brief TODO 描述该文件的功能
+ *  @brief flexi log功能性函数实现文件
  *  @author GYM (48060945@qq.com)
  *  @date 2025-11-07 下午9:44
  *  @version 1.0
  *  @copyright Copyright (c) 2025 GYM. All Rights Reserved.
  * ==================================================
  */
-
-
 #include "flexi_log_until.h"
 #include "flexi_log.h"
-
 
 /**
  * @brief 字符串拼接

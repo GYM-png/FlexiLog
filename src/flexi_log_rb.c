@@ -1,7 +1,7 @@
 /**
  * ==================================================
  *  @file flexi_log_rb.c
- *  @brief TODO 描述该文件的功能
+ *  @brief flexi log 环形缓冲区实现文件
  *  @author GYM (48060945@qq.com)
  *  @date 2025-11-06 下午11:11
  *  @version 1.0
@@ -27,7 +27,6 @@
 void flog_rb_init(flog_ring_buffer_t *rb, char *buffer, uint32_t size)
 {
     flexlog_assert(rb);
-    flexlog_assert(rb->buffer);
     flexlog_assert(buffer);
     memset(buffer, 0, size);
     rb->buffer = buffer;
@@ -196,5 +195,4 @@ void flog_rb_write_force(flog_ring_buffer_t *rb, const char *data, uint32_t size
         }
     }
 }
-
 #endif //FLEXILOG_USE_RING_BUFFER
