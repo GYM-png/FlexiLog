@@ -34,6 +34,40 @@ extern void flog_port_free(void *ptr);
 #endif
 
 /**
+ * @brief hex_dump函数宏
+ */
+#define FLOG_HEX_DUMP_APPEND_ASCII(pos, data_byte)      do                                             \
+                                                        {                                              \
+                                                            if (pos % 16 == (16 - data_byte))          \
+                                                            {                                          \
+                                                                log_size += snprintf(flog.line_buffer + log_size, FLEXILOG_LINE_MAX_LENGTH, "    %s\r\n", ascii);\
+                                                                ascii_pos = 0;                         \
+                                                                if (log_size > sizeof(flog.line_buffer) - line_size)\
+                                                                {                       \
+                                                                    pos += data_byte;   \
+                                                                    goto output;        \
+                                                                }                       \
+                                                            }                           \
+                                                        }while(0)
+/**
+ * @brief hex_dump函数宏
+ */
+#define FLOG_HEX_DUMP_TAIL_DEEL(pos, data_byte)     do\
+                                                    {                                                 \
+                                                        if (pos % 16 != 0)                            \
+                                                        {                                             \
+                                                            uint16_t space_len = (16 - pos % 16) / data_byte * (data_byte * 2 + 1); \
+                                                            for (int i = 0; i < space_len; ++i) {\
+                                                                flog.line_buffer[log_size++] = ' ';\
+                                                            }\
+                                                            for (int i = 0; i < space_len / (data_byte * 2 + 1) * data_byte; ++i) {\
+                                                                ascii[(16 - i - 1)] = ' ';\
+                                                            }\
+                                                        log_size += snprintf(flog.line_buffer + log_size, FLEXILOG_LINE_MAX_LENGTH, "    %s\r\n", ascii);\
+                                                        }\
+                                                    }while(0)
+
+/**
  * @brief 颜色格式
  */
 #define FLOG_COLOR_START "\x1B["
@@ -86,6 +120,9 @@ extern void flog_port_free(void *ptr);
 #define FLOG_LEVLE_STR_RECORD   "-R"
 #define FLOG_LEVLE_STR_ASSERT   "-A"
 
+/**
+ * @brief 换行
+ */
 #define FLOG_NEW_LINE "\r\n"
 
 /**
@@ -93,7 +130,9 @@ extern void flog_port_free(void *ptr);
  */
 #define FLOG_FMT_DEFAULT (FLOG_FMT_TIME | FLOG_FMT_TAG | FLOG_FMT_FONT_COLOR)
 
-
+/**
+ * @brief 输出加锁
+ */
 #define FLOG_LOCK()     do                               \
                         {                                \
                             if (flog.output_lock_enbale) \
@@ -102,6 +141,9 @@ extern void flog_port_free(void *ptr);
                             }                            \
                         }while(0)
 
+/**
+ * @brief 输出解锁
+ */
 #define FLOG_UNLOCK()   do                               \
                         {                                \
                             if (flog.output_lock_enbale) \
@@ -785,8 +827,11 @@ void flog_output_event(FLOG_EVENT event, const char *file, const char *func, uin
 }
 #endif // FLEXILOG_USE_EVENT_LOG_RING_BUFFER
 
+
 /**
  * @brief 十六进制输出
+ * @note 支持按字节，半字，字数据进行输出
+ * @note 支持任意长度数据，不受FLEXILOG_LINE_MAX_LENGTH限制
  * @param title 标题信息
  * @param data  数据
  * @param size 数据大小
@@ -795,64 +840,85 @@ void flog_output_event(FLOG_EVENT event, const char *file, const char *func, uin
 void flog_hex_dump(char *title, void *data, uint32_t size, FLOG_DATA_TYPE type)
 {
     uint32_t log_size = 0;
-    uint32_t pos = 0;
+    static uint32_t pos = 0;
+    static char ascii[17] = {0};
+    uint8_t ascii_pos = 0;
+    uint8_t line_size =0;
     flexlog_assert(data != NULL);
-    if (title)
-    {
-        log_size += flog_strcat(flog.line_buffer + log_size, title, FLEXILOG_LINE_MAX_LENGTH);
-        log_size += flog_strcat(flog.line_buffer + log_size, ":\r\n", FLEXILOG_LINE_MAX_LENGTH);
-    }
     switch (type)
     {
         case FLOG_DATA_TYPE_BYTE:
-            for (pos = 0; pos < size; pos++)
+            line_size = (title) ? (81 - strlen(title) - 1) : 81;    // 单行打印长度
+            for (; pos < size; pos++)
             {
                 if (pos % 16 == 0)
                 {
+                    if (title){
+                        log_size += snprintf(flog.line_buffer + log_size, FLEXILOG_LINE_MAX_LENGTH, "%s ", title);
+                    }
                     log_size += snprintf(flog.line_buffer + log_size, FLEXILOG_LINE_MAX_LENGTH, "0x%08X ", pos);
                 }
                 log_size += snprintf(flog.line_buffer + log_size, FLEXILOG_LINE_MAX_LENGTH, "%02X ", ((uint8_t *)data)[pos]);
-                if (pos % 16 == 15)
-                {
-                    log_size += snprintf(flog.line_buffer + log_size, FLEXILOG_LINE_MAX_LENGTH, "\r\n");
-                }
+                ascii[ascii_pos++] = ((((char *)data)[pos] >= ' ') && (((char *)data)[pos] <= '~')) ? ((char *)data)[pos] : '.';
+
+                /* 16字节打印结束 添加对应ascii码 并处理递归打印逻辑 */
+                FLOG_HEX_DUMP_APPEND_ASCII(pos, 1);
             }
+            /* 最后不足16字节 打印占位符 */
+            FLOG_HEX_DUMP_TAIL_DEEL(pos, 1);
             break;
         case FLOG_DATA_TYPE_HALF_WORD:
+            line_size = (title) ? (73 - strlen(title) - 1) : 73;    // 单行打印长度
             if (size % 2 != 0)
                 return;
-            for (pos = 0; pos < size - 1; pos += 2)
+            for (; pos < size - 1; pos += 2)
             {
                 if (pos % 16 == 0)
                 {
+                    if (title){
+                        log_size += snprintf(flog.line_buffer + log_size, FLEXILOG_LINE_MAX_LENGTH, "%s ", title);
+                    }
                     log_size += snprintf(flog.line_buffer + log_size, FLEXILOG_LINE_MAX_LENGTH, "0x%08X ", pos);
                 }
                 log_size += snprintf(flog.line_buffer + log_size, FLEXILOG_LINE_MAX_LENGTH, "%02X%02X ", ((uint8_t *)data)[pos + 1], ((uint8_t *)data)[pos]);
-                if (pos % 16 == 14)
-                {
-                    log_size += snprintf(flog.line_buffer + log_size, FLEXILOG_LINE_MAX_LENGTH, FLOG_NEW_LINE);
-                }
+                ascii[ascii_pos++] = ((((char *)data)[pos] >= ' ') && (((char *)data)[pos] <= '~')) ? ((char *)data)[pos] : '.';
+                ascii[ascii_pos++] = ((((char *)data)[pos + 1] >= ' ') && (((char *)data)[pos + 1] <= '~')) ? ((char *)data)[pos + 1] : '.';
+
+                /* 16字节打印结束 添加对应ascii码 并处理递归打印逻辑 */
+                FLOG_HEX_DUMP_APPEND_ASCII(pos, 2);
             }
+            /* 最后不足16字节 打印占位符 */
+            FLOG_HEX_DUMP_TAIL_DEEL(pos, 2);
             break;
         case FLOG_DATA_TYPE_WORD:
+            line_size = (title) ? (69 - strlen(title) - 1) : 69;    // 单行打印长度
             if (size % 4 != 0)
                 return;
-            for (pos = 0; pos < size - 3; pos += 4)
+            for (; pos < size - 3; pos += 4)
             {
                 if (pos % 16 == 0)
                 {
+                    if (title){
+                        log_size += snprintf(flog.line_buffer + log_size, FLEXILOG_LINE_MAX_LENGTH, "%s ", title);
+                    }
                     log_size += snprintf(flog.line_buffer + log_size, FLEXILOG_LINE_MAX_LENGTH, "0x%08X ", pos);
                 }
                 log_size += snprintf(flog.line_buffer + log_size, FLEXILOG_LINE_MAX_LENGTH, "%02X%02X%02X%02X ", ((uint8_t *)data)[pos + 3], ((uint8_t *)data)[pos + 2], ((uint8_t *)data)[pos + 1], ((uint8_t *)data)[pos]);
-                if (pos % 16 == 12)
-                {
-                    log_size += snprintf(flog.line_buffer + log_size, FLEXILOG_LINE_MAX_LENGTH, FLOG_NEW_LINE);
-                }
+                ascii[ascii_pos++] = ((((char *)data)[pos] >= ' ') && (((char *)data)[pos] <= '~')) ? ((char *)data)[pos] : '.';
+                ascii[ascii_pos++] = ((((char *)data)[pos + 1] >= ' ') && (((char *)data)[pos + 1] <= '~')) ? ((char *)data)[pos + 1] : '.';
+                ascii[ascii_pos++] = ((((char *)data)[pos + 2] >= ' ') && (((char *)data)[pos + 2] <= '~')) ? ((char *)data)[pos + 2] : '.';
+                ascii[ascii_pos++] = ((((char *)data)[pos + 3] >= ' ') && (((char *)data)[pos + 3] <= '~')) ? ((char *)data)[pos + 3] : '.';
+
+                /* 16字节打印结束 添加对应ascii码 并处理递归打印逻辑 */
+                FLOG_HEX_DUMP_APPEND_ASCII(pos, 4);
             }
+            /* 最后不足16字节 打印占位符 */
+            FLOG_HEX_DUMP_TAIL_DEEL(pos, 4);
             break;
         default:
             break;
     }
+    output:
     FLOG_LOCK();
 #ifdef FLEXILOG_USE_ALL_LOG_RING_BUFFER
     flog_rb_write_force(&flog.ring_buffer_all, flog.line_buffer, log_size);
@@ -862,4 +928,11 @@ void flog_hex_dump(char *title, void *data, uint32_t size, FLOG_DATA_TYPE type)
 #endif // FLEXILOG_USE_OUTPUT_LOG_RING_BUFFER
     flog_port_output(flog.line_buffer, log_size);
     FLOG_UNLOCK();
+    /* 递归直到打印完成 */
+    if (pos < size){
+        flog_hex_dump(title, data, size, type);
+    }
+    else{
+        pos = 0;
+    }
 }
