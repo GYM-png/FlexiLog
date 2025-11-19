@@ -12,7 +12,10 @@
 #include "flexi_log.h"
 
 /* your library */
-#include "stdlib.h"
+#include "system.h"
+#include "malloc.h"
+#include "usart_drv.h"
+static SemaphoreHandle_t flog_port_mutex = NULL;
 
 /**
  * @brief 硬件外设初始化
@@ -20,6 +23,7 @@
 void flog_port_init(void)
 {
     /* TODO: 添加初始化代码 */
+    flog_port_mutex = xSemaphoreCreateMutex();
 }
 
 /**
@@ -30,6 +34,7 @@ void flog_port_init(void)
 void flog_port_output(const char *buf, size_t size)
 {
     /* TODO: 添加写入代码 */
+    uart_transmit(DEBUG_UART_INDEX, (uint8_t *)buf, size);
 }
 
 /**
@@ -38,6 +43,7 @@ void flog_port_output(const char *buf, size_t size)
 void flog_port_lock(void)
 {
     /* TODO: 添加锁代码 */
+    xSemaphoreTake(flog_port_mutex, 200);
 }
 
 /**
@@ -46,6 +52,7 @@ void flog_port_lock(void)
 void flog_port_unlock(void)
 {
     /* TODO: 添加解锁代码 */
+    xSemaphoreGive(flog_port_mutex);
 }
 
 /**
@@ -73,7 +80,7 @@ const char *flog_port_get_thread(void)
 void *flog_port_malloc(size_t size)
 {
     /* TODO: 添加内存分配代码 */
-    return malloc(size);
+    return mymalloc(MEM_CCM, size);
 }
 
 /**
@@ -82,6 +89,6 @@ void *flog_port_malloc(size_t size)
 void flog_port_free(void *ptr)
 {
     /* TODO: 添加内存释放代码 */
-    free(ptr);
+    myfree(ptr);
 }
 #endif

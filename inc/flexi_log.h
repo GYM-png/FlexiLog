@@ -40,11 +40,11 @@
 
 /* 多种环形缓冲区定义 */
 #ifdef FLEXILOG_USE_RING_BUFFER
-//#define FLEXILOG_AUTO_MALLOC                    /* 使用自动分配内存 */
-#define FLEXILOG_USE_ALL_LOG_RING_BUFFER        /* 使用全部环形缓冲区    @note 会对所有日志进行记录，不受任何过滤影响 */
+#define FLEXILOG_AUTO_MALLOC                    /* 使用自动分配内存 */
+// #define FLEXILOG_USE_ALL_LOG_RING_BUFFER        /* 使用全部环形缓冲区    @note 会对所有日志进行记录，不受任何过滤影响 */
 #define FLEXILOG_USE_OUTPUT_LOG_RING_BUFFER     /* 使用输出环形缓冲区    @note 会记录所有向硬件输出的日志 */
 #define FLEXILOG_USE_RECOD_LOG_RING_BUFFER      /* 使用记录环形缓冲区    @note 会记录特定等级以上的日志，默认为FLOG_LEVEL_RECORD */
-#define FLEXILOG_USE_EVENT_LOG_RING_BUFFER      /* 使用事件环形缓冲区    @note 会记录相关事件触发的日志 */
+// #define FLEXILOG_USE_EVENT_LOG_RING_BUFFER      /* 使用事件环形缓冲区    @note 会记录相关事件触发的日志 */
 
 /* 启用自动分配内存后会在flog_init函数中分配内存 */
 #ifdef FLEXILOG_AUTO_MALLOC
