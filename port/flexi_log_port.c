@@ -15,6 +15,8 @@
 #include "system.h"
 #include "malloc.h"
 #include "usart_drv.h"
+#include "date.h"
+#include "stdio.h"
 static SemaphoreHandle_t flog_port_mutex = NULL;
 
 /**
@@ -61,7 +63,11 @@ void flog_port_unlock(void)
 const char *flog_port_get_time(void)
 {
     /* TODO: 添加时间代码 */
-    return "";
+    static char time_str[15] = {0};
+    Date_t date;
+    date_get(&date);
+    sprintf(time_str, "%02d:%02d:%02d:%03d", date.hour, date.minute, date.second, xTaskGetTickCount()%1000);
+    return time_str;
 }
 
 /**
