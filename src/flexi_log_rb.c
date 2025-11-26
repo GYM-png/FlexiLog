@@ -107,7 +107,7 @@ static uint32_t flog_rb_read(flog_ring_buffer_t *rb, char *data, uint32_t size)
         {
             data[i] = rb->buffer[rb->read_pos];
             rb->read_pos = (rb->read_pos + 1) % rb->size;
-            if (rb->read_pos == rb->write_pos)
+            if (rb->read_pos == 0)
             {
                 rb->read_pos_mirror = !rb->read_pos_mirror;
             }
